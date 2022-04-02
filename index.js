@@ -12,9 +12,11 @@ const pool = new Pool({
 
 express()
   .use(express.static(path.join(__dirname, 'public')))
-  .set('views', path.join(__dirname, 'public'))
+  .use(express.json())
+  .use(express.urlencoded({ extended: true }))
+  .set('views', path.join(__dirname, 'views'))
   .set('view engine', 'ejs')
-  .get('', async(req, res) => {
+  .get('/', async(req, res) => {
     try {
       const client = await pool.connect();
       client.release();
@@ -42,7 +44,7 @@ express()
           'tables': (tables) ? tables.rows : null
         };
 
-        res.render('pages/db-info.ejs', locals);
+        res.render('pages/db-info', locals);
         client.release();
     } catch (err) {
       console.error(err);
