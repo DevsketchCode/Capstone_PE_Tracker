@@ -13,7 +13,7 @@ const pool = new Pool({
 express()
   .use(express.static(path.join(__dirname, 'public')))
   .use(express.json())
-  .use(express.urlencode({ extended: true }))
+  .use(express.urlencoded({ extended: true }))
   .set('view engine', 'ejs')
   .get('/', async(req, res) => {
     try{
