@@ -20,11 +20,11 @@ express()
     try{
     const client = await pool.connect();
 
-    client.release();
+      client.release();
       res.send("Works");
     } catch (err) {
       console.error(err);
       res.send("Error " + err);
     }
   })
-  .listen(PORT, () => console.log('Listening on ${ PORT }'));
+  .listen(PORT, () => console.log(`Listening on ${ PORT }`));
