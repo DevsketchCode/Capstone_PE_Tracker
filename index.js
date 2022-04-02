@@ -19,8 +19,15 @@ express()
   .get('/', async(req, res) => {
     try {
       const client = await pool.connect();
+
+      const tasks = await client.query(
+        `SELECT * FROM tasks ORDER BY id ASC`);
+
+      const locals = {
+        'tasks': (tasks) ? tasks.rows : null
+      };
+      res.render('pages/index', locals);
       client.release();
-      res.send('Works');
     } catch (err) {
       console.error(err);
       res.send("Error " + err);
@@ -40,12 +47,47 @@ express()
         ORDER BY c.relname, a.attnum;
         `);
 
+        const obs = await client.query(`
+          SELECT * FROM observations`);
+
         const locals = {
-          'tables': (tables) ? tables.rows : null
+          'tables': (tables) ? tables.rows : null,
+          'obs': (obs) ? obs.rows : null
         };
 
         res.render('pages/db-info', locals);
         client.release();
+    } catch (err) {
+      console.error(err);
+      res.send("Error " + err);
+    }
+  }) // Receive the posted message in log
+  .post('/log', async(req, res) => {
+    try {
+      const client = await pool.connect();
+      const usersId = req.body.users_id;
+      const studentsId = req.body.students_id;
+      const tasksId = req.body.tasks_id;
+      const duration = req.body.duration;
+
+      const sqlInsert = await client.query(
+        `INSERT INTO observations (users_id, students_id, tasks_id, duration)
+        VALUES (${usersId}, ${studentsId}, ${tasksId}, ${duration})
+        RETURNING id as new_id;`
+      );
+      console.log(`Tracking task $tasksId}`);
+
+      // first row returned will have the id of what was just inserted
+      const result = {
+        'response': (sqlInsert) ? (sqlInsert.rows[0]) : null
+      };
+
+      res.set({
+        'Content-Type': 'application/json'
+      });
+      res.json({ requestBody: result });
+      client.release();
+
     } catch (err) {
       console.error(err);
       res.send("Error " + err);
