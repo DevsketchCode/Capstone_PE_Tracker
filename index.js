@@ -14,11 +14,11 @@ express()
   .use(express.static(path.join(__dirname, 'public')))
   .set('views', path.join(__dirname, 'public'))
   .set('view engine', 'ejs')
-  .get('/', async(req, res) => {
+  .get('', async(req, res) => {
     try {
       const client = await pool.connect();
       client.release();
-      res.send('WORKS');
+      res.send('Works');
     } catch (err) {
       console.error(err);
       res.send("Error " + err);
