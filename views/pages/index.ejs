@@ -17,7 +17,6 @@
   <script>
 
     // Declare variables
-    let currentTaskId = null;
     const defaultButtonColor = "#E5E5E5";
     const timerStartedButtonColor = "#36DC40";
     const timerDurationSavedButtonColor = "#F8721A";
@@ -96,8 +95,6 @@
       // reset the initialTask object
       resetInitialTask();
     };
-
-
 
     function endTask(task_id, task_name) {
       // set the basic task information to start it up
@@ -187,8 +184,6 @@
       const result = await response.json();
       console.log("id: " + id + " duration: " + formatTaskDuration(duration));
       console.log(result);
-
-      currentTaskId = id;
     };
 
 
