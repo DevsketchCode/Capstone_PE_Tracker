@@ -1,7 +1,9 @@
+// jshint esversion: 8
 const express = require('express');
 const path = require('path');
 const PORT = process.env.PORT || 5000;
 const { Pool } = require('pg');
+let tasks = [];
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -20,7 +22,7 @@ express()
     try {
       const client = await pool.connect();
 
-      const tasks = await client.query(
+      tasks = await client.query(
         `SELECT * FROM tasks ORDER BY id ASC`);
 
       const locals = {
@@ -75,7 +77,7 @@ express()
         VALUES (${usersId}, ${studentsId}, ${tasksId}, ${duration})
         RETURNING id as new_id;`
       );
-      console.log(`Tracking task $tasksId}`);
+      console.log(`Tracking task ${tasksId}`);
 
       // first row returned will have the id of what was just inserted
       const result = {

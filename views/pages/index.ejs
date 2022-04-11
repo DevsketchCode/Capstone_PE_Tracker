@@ -7,13 +7,170 @@
 <body>
   <h1>PE Tracker</h1>
   <% tasks.forEach(function(r) {%>
-    <button id='<%= r.id %>' 
-      onClick='javascript:logTask("<%= r.id %>");'><%= r.name %></button>
+    <button id='taskBtn<%= r.id %>' onClick='javascript:startTask("<%= r.id %>", "<%= r.name %>");'><%= r.name %></button>
+    <button id='taskStopBtn<%= r.id %>' onClick='javascript:endTask("<%= r.id %>", "<%= r.name %>");' style="display: none;">Stop</button>
+    <p id="taskStartTime<%= r.id %>"></p>
+    <p id="taskEndTime<%= r.id %>"></p>
+    <p id="taskDuration<%= r.id %>"></p>
+    <br>
   <% }) %>
   <script>
-    let currentTaskId = null;
 
-    const logTask = async function(id) {
+    // Declare variables
+    let currentTaskId = null;
+    const defaultButtonColor = "#E5E5E5";
+    const timerStartedButtonColor = "#36DC40";
+    const timerDurationSavedButtonColor = "#F8721A";
+
+    // create an array to hold the taskObjects
+    let taskObjects = [];
+
+    // create an empty initial task object
+    var initialTask = {};
+
+    // Initialize the initialTask object
+    resetInitialTask();
+
+    function resetInitialTask() {
+      initialTask = {id: "", name: "", latestStartTime: 0.0, latestEndTime: 0.0, taskDuration: 0.0, counter: 0, isStarted: false};
+    }
+
+    function formatDateTime(timeInMilliseconds) {
+      return new Date(timeInMilliseconds).toTimeString().replace(/.*(\d{2}:\d{2}:\d{2}).*/, "$1");
+    }
+
+    function formatTaskDuration(duration) {
+      return new Date(duration * 1000).toISOString().substr(11, 8);
+    }
+
+    function startTask(task_id, task_name) {
+      // set the basic task information to start it up
+      initialTask.id = task_id;
+      initialTask.name = task_name;
+      
+      // Check to see if the task object array already includes the initialTask
+      if(taskObjects.some(e => e.name === initialTask.name)) {
+        // task Object already exists in object array
+        
+        // Get object position
+        let taskPosition = taskObjects.findIndex(t => t.name === initialTask.name);
+
+        // Check to see if this behavior time has started
+        if(taskObjects[taskPosition].isStarted) {
+          alert("The task: " + task_name + " has already been started.");
+        } else {
+          // Start the new timer, save the new start time to the task object, and this will be added to the duration when stopped.
+          taskObjects[taskPosition].latestStartTime = new Date().getTime();
+
+          // Set status of behavior to timer started
+          taskObjects[taskPosition].isStarted = true;
+          // Set the behavior button color to notify of timer started
+          let taskButton = document.querySelector("#taskBtn" + taskObjects[taskPosition].id);
+          taskButton.style.backgroundColor = timerStartedButtonColor;
+
+          // Show stop button
+          let taskStopButton = document.querySelector("#taskStopBtn" + taskObjects[taskPosition].id);
+          taskStopButton.style.display = "inline-block";          
+          alert(taskObjects[taskPosition].name + " Behavior Timer Started Again");
+        }
+        
+      } else {
+        // taskObjects does not include default task for that behavior
+
+        // add the start time of the behavior
+        initialTask.latestStartTime = new Date().getTime();
+        // Set status of behavior to timer started
+        initialTask.isStarted = true;
+        // Set the behavior button color to notify of timer started
+        let taskButton = document.querySelector("#taskBtn" + initialTask.id);
+        taskButton.style.backgroundColor = timerStartedButtonColor;
+
+        // Show stop button
+        let taskStopButton = document.querySelector("#taskStopBtn" + initialTask.id);
+        taskStopButton.style.display = "inline-block";
+        
+        // push the initial task with defaults into the array
+        taskObjects.push(initialTask);
+      }
+
+      // reset the initialTask object
+      resetInitialTask();
+    };
+
+
+
+    function endTask(task_id, task_name) {
+      // set the basic task information to start it up
+      initialTask.id = task_id;
+      initialTask.name = task_name;
+
+      let totalDuration = null;
+      
+      // Check to see if the task object array already includes the task
+      if(taskObjects.some(e => e.name === initialTask.name)) {
+        // task Object already exists in object array
+        
+        // Get object position
+        let taskPos = taskObjects.findIndex(t => t.name === initialTask.name);
+
+        // Check to see if this behavior time has started
+        if(taskObjects[taskPos].isStarted) {
+        // add the start time of the behavior
+        taskObjects[taskPos].latestEndTime = new Date().getTime();
+
+        // Set status of behavior to timer stopped
+        taskObjects[taskPos].isStarted = false;
+
+        // Calculate duration and add to any previous durations done on this task.
+        previousTaskDuration = parseFloat(taskObjects[taskPos].duration);
+
+        // Check to see if there is a valide previous duration saved
+        if(!isNaN(taskObjects[taskPos].duration) && taskObjects[taskPos].duration > 0) {
+          // Valid previous duration: Add the previous duration to this current duration as it's the same task
+          // Not currently tracking total duration, as it is separate when entered into the database
+          totalDuration = taskObjects[taskPos].duration + ((taskObjects[taskPos].latestEndTime - taskObjects[taskPos].latestStartTime)/1000); 
+
+          // Just using the standard duration at this time, see notes above
+          taskObjects[taskPos].duration = ((taskObjects[taskPos].latestEndTime - taskObjects[taskPos].latestStartTime)/1000); 
+
+        } else {
+          // Only use the current duration, as there was not a previous one yet.
+          taskObjects[taskPos].duration = ((taskObjects[taskPos].latestEndTime - taskObjects[taskPos].latestStartTime)/1000); 
+          totalDuration = taskObjects[taskPos].duration;
+        }
+
+        // Log the task in the database, convert duration to time Interval for db
+        logTask(taskObjects[taskPos].id, taskObjects[taskPos].duration);
+
+        // Set behavior button to orange to show there has been time saved for this behavior
+        alert("Duration saved for this behavior. Button will show orange signifying this.");
+        
+        // Set the behavior button color to notify of timer stopped and there is a current duration set
+        let taskButton = document.querySelector("#taskBtn" + initialTask.id);
+        taskButton.style.backgroundColor = timerDurationSavedButtonColor;
+
+        // Hide Stop Button
+        let taskStopButton = document.querySelector("#taskStopBtn" + initialTask.id);
+        taskStopButton.style.display = "none";
+
+        alert("Your task '" + taskObjects[taskPos].name + "' has the following total duration: " + formatTaskDuration(totalDuration) + ".");
+
+        } else {
+          alert("The timer was not started for this behavior.");
+        }
+
+      } else {
+        // taskObjects does not include default task for that behavior
+        alert("Task object not found. Nothing has been stopped");
+      }
+
+      // reset the initialTask object
+      resetInitialTask();
+    };
+
+
+    // Log the observation to the database
+    const logTask = async function(id, duration) {
       const response = await fetch('/log', { 
         method: 'POST',
         headers: {
@@ -24,14 +181,19 @@
           users_id: -1,
           students_id: -1,
           tasks_id: id,
-          duration: "'+00:00:01'"
+          duration: "'+" + formatTaskDuration(duration) + "'"
         })
       });
       const result = await response.json();
+      console.log("id: " + id + " duration: " + formatTaskDuration(duration));
       console.log(result);
 
       currentTaskId = id;
     };
+
+
   </script>
+
+  <a href="/db-info/">See Data</a>
 </body>
 </html>
